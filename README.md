@@ -76,4 +76,15 @@ Para correr este proyecto en tu entorno local, asegúrate de tener Node.js y `pn
 4. **Ver la aplicación:**
    Abre tu navegador e ingresa a `http://localhost:5173`.
 
+---
+
+## 🌐 Consumo de API (Práctica de la Semana U3-1)
+
+En esta entrega se integró el consumo de datos reales de forma asíncrona en React utilizando `fetch`, `useEffect` y `useState`, incluyendo el manejo visual de estados de carga (`loading`) y error (`error`).
+
+* **API Pública elegida:** [TheMealDB](https://www.themealdb.com/)
+* **Documentación oficial:** `https://www.themealdb.com/api.php`
+* **Endpoint utilizado (GET):** `https://www.themealdb.com/api/json/v1/1/search.php?s=a`
+* **Archivo de implementación:** `src/App.jsx`
+
 *Nota: Este proyecto está en fase de desarrollo frontend puro. La conexión con la API REST y la base de datos se implementará en fases posteriores.*

@@ -1,34 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RecipeCard from './RecipeCard';
 import Tarjeta from './Tarjeta';
 import './App.css';
 
-// Paso 2: Un arreglo de datos (extraído de tu index.html)[cite: 2, 4]
-const recipesData = [
-  {
-    id: 1,
-    title: 'Spaghetti alla carbonara',
-    category: 'Italian',
-    image: 'https://www.themealdb.com/images/media/meals/llcbn01574260722.jpg',
-    link: 'https://www.themealdb.com/meal/52982'
-  },
-  {
-    id: 2,
-    title: 'Beef Sunday Roast',
-    category: 'Beef',
-    image: 'https://www.themealdb.com/images/media/meals/ssrrrs1503664277.jpg',
-    link: 'https://www.themealdb.com/meal/52824'
-  },
-  {
-    id: 3,
-    title: 'Teriyaki Chicken Casserole',
-    category: 'Chicken',
-    image: 'https://www.themealdb.com/images/media/meals/wvpsxx1468256321.jpg',
-    link: 'https://www.themealdb.com/meal/52772-teriyaki-chicken-casserole-recipe'
-  }
-];
+// Endpoint público de TheMealDB (Punto 1 de la práctica)
+const API_URL = 'https://www.themealdb.com/api/json/v1/1/search.php?s=a';
 
-// Ejemplo de lista simple para el componente Tarjeta (props: titulo, descripcion)
 const destacados = [
   { id: 1, titulo: 'Spaghetti Carbonara', descripcion: 'Pasta italiana con huevo, queso y panceta.' },
   { id: 2, titulo: 'Tacos al Pastor', descripcion: 'Tortilla de maíz con cerdo adobado y piña.' },
@@ -36,19 +13,68 @@ const destacados = [
 ];
 
 function App() {
-  // Paso 3: Estado para el contador global de favoritos[cite: 2, 3]
+  // Estados para consumir la API (Puntos 3 y 4)
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Estado para el contador global de favoritos
   const [favCount, setFavCount] = useState(0);
 
-  // Paso 3: Estado para el formulario controlado[cite: 2, 3]
+  // Estado para el formulario controlado
   const [formData, setFormData] = useState({ name: '', category: '', desc: '' });
   const [formMessage, setFormMessage] = useState({ text: '', type: '' });
 
-  // Función para actualizar el contador desde las tarjetas
+  // Función para obtener los datos de la API
+  const fetchRecipes = async (simulateError = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Pausa de 2 segundos para que se aprecie el estado de carga (loading) en pantalla
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Si simulateError es true, usamos una URL rota para demostrar el Punto 4 (estado de error)
+      const urlToFetch = simulateError 
+        ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error' 
+        : API_URL;
+
+      const res = await fetch(urlToFetch);
+      if (!res.ok) {
+        throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
+      }
+
+      const data = await res.json();
+
+      // Punto 2: Mostrar los datos en la consola
+      console.log('Datos crudos de TheMealDB (res.json()):', data);
+
+      const formattedRecipes = (data.meals || []).map((meal) => ({
+        id: meal.idMeal,
+        title: meal.strMeal,
+        category: meal.strCategory,
+        image: meal.strMealThumb,
+        link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
+      }));
+
+      setRecipes(formattedRecipes);
+    } catch (err) {
+      console.error('Error capturado:', err);
+      setError('Error al cargar las recetas desde TheMealDB. Verifica tu conexión o la URL de la API.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Punto 3: Se ejecuta automáticamente al cargar la página
+  useEffect(() => {
+    fetchRecipes(false);
+  }, []);
+
   const handleToggleFavorite = (change) => {
     setFavCount((prevCount) => prevCount + change);
   };
 
-  // Manejador genérico para los inputs del formulario
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -56,7 +82,6 @@ function App() {
     });
   };
 
-  // Paso 4: Evento de envío del formulario (Validación de app.js migrada)[cite: 2, 3]
   const handleSubmit = (e) => {
     e.preventDefault();
     const { name, category, desc } = formData;
@@ -67,7 +92,7 @@ function App() {
     }
 
     setFormMessage({ text: `✅ ¡Gracias! La receta "${name.trim()}" ha sido enviada correctamente.`, type: 'exito' });
-    setFormData({ name: '', category: '', desc: '' }); // Limpia el formulario
+    setFormData({ name: '', category: '', desc: '' });
   };
 
   return (
@@ -81,7 +106,6 @@ function App() {
             <li><a href="#inicio">Inicio</a></li>
             <li><a href="#recetas">Recetas</a></li>
             <li><a href="#sugerir">Sugerir</a></li>
-            {/* Se renderiza dinámicamente el estado del contador */}
             <li className="fav-counter-container">❤️ Favoritos: <span>{favCount}</span></li>
           </ul>
         </nav>
@@ -101,21 +125,48 @@ function App() {
 
         <section id="recetas" className="recipes-section">
           <h2>Recetas Destacadas</h2>
-          <div className="recipes-grid">
-            {/* Paso 2: Renderiza la lista iterando el arreglo con map()[cite: 2] */}
-            {recipesData.map((recipe) => (
-              <RecipeCard 
-                key={recipe.id} 
-                recipe={recipe} 
-                onToggleFavorite={handleToggleFavorite} 
-              />
-            ))}
+
+          {/* Botones de control para probar Carga y Error en vivo */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '24px' }}>
+            <button type="button" className="btn" onClick={() => fetchRecipes(false)}>
+              🔄 Recargar API (Ver Carga)
+            </button>
+            <button type="button" className="btn" onClick={() => fetchRecipes(true)}>
+              ⚠️ Simular Falla (Ver Error)
+            </button>
           </div>
+
+          {/* Punto 4: Estado de CARGA visible */}
+          {loading && (
+            <div className="loading-container">
+              <div className="spinner"></div>
+              <p>Cargando recetas desde TheMealDB...</p>
+            </div>
+          )}
+
+          {/* Punto 4: Estado de ERROR visible */}
+          {!loading && error && (
+            <div className="form-message error" style={{ maxWidth: '480px', margin: '20px auto' }}>
+              <p>❌ {error}</p>
+            </div>
+          )}
+
+          {/* Punto 3: Renderizar la lista cuando terminó de cargar sin errores */}
+          {!loading && !error && (
+            <div className="recipes-grid">
+              {recipes.map((recipe) => (
+                <RecipeCard 
+                  key={recipe.id} 
+                  recipe={recipe} 
+                  onToggleFavorite={handleToggleFavorite} 
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <section id="sugerir" className="form-section">
           <h2>Sugerir una nueva receta</h2>
-          {/* Formulario controlado */}
           <form id="recipe-form" noValidate onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="name">Nombre del platillo:</label>
@@ -132,7 +183,6 @@ function App() {
               <textarea id="desc" name="desc" rows="3" value={formData.desc} onChange={handleInputChange} placeholder="Ej: Harina, tomate, queso..."></textarea>
             </div>
 
-            {/* Mensaje dinámico del formulario */}
             {formMessage.text && (
               <p className={`form-message ${formMessage.type}`} style={{ display: 'block' }}>
                 {formMessage.text}
