@@ -1,15 +1,16 @@
-# 🍳 SaborDB — Recetario de Cocina (Versión React - Fase 1)
+# 🍳 SaborDB — Recetario de Cocina (Versión React - Fase 2)
 
-Aplicación Web de Página Única (SPA) construida con React. Este proyecto sirve como introducción práctica al desarrollo basado en componentes, permitiendo mostrar un catálogo de recetas y gestionar interactividad básica mediante el estado local.
+Aplicación Web de Página Única (SPA) construida con React. En esta fase el catálogo de recetas deja de ser estático: los datos se obtienen en tiempo real desde la API pública **TheMealDB** mediante `fetch` + `useEffect`, y se renderizan con `useState`, incluyendo estados de carga y error.
 
 ## 📋 Metadatos del proyecto
 
 | Campo | Valor | 
 | ----- | ----- | 
 | Proyecto | Recetario de Cocina (SaborDB - React) | 
-| Fase actual | Fase 1: Componentes estáticos y Estado local | 
-| Tecnologías | React, JSX, Vite, pnpm | 
-| Conceptos clave | Componentes funcionales, `props`, `useState` | 
+| Fase actual | Fase 2: Primer paso del consumo de datos (API) |
+| Tecnologías | React, JSX, Vite, pnpm, Fetch API |
+| API pública | [TheMealDB](https://www.themealdb.com/) |
+| Conceptos clave | Componentes funcionales, `props`, `useState`, `useEffect`, `fetch`, estados de carga y error |
 
 ## 📁 Estructura inicial del proyecto
 
@@ -48,7 +49,55 @@ En esta iteración del proyecto, estamos aislando la interfaz de usuario para en
 
 3. **Manejo del Estado (`useState`):** Implementación de interactividad en cada tarjeta para marcar las recetas como "Favoritas" (Me gusta / No me gusta) de forma independiente.
 
-4. **Renderizado de Listas:** Uso del método `.map()` de JavaScript para iterar sobre un arreglo de datos estáticos y generar elementos dinámicamente.
+4. **Renderizado de Listas:** Uso del método `.map()` de JavaScript para iterar sobre el arreglo de recetas y generar elementos dinámicamente.
+
+5. **Consumo de datos con `fetch`:** Petición `GET` a una API pública desde `useEffect`, conversión de la respuesta con `res.json()` y almacenamiento en el estado con `useState`.
+
+## 🌐 Consumo de datos (API)
+
+En esta fase la sección **Recetas Destacadas** ya no usa datos escritos a mano: se alimenta de la API pública **[TheMealDB](https://www.themealdb.com/)**.
+
+**URL de la API utilizada:**
+
+```text
+https://www.themealdb.com/api/json/v1/1/search.php?s=
+```
+
+- No requiere API key ni registro.
+- Devuelve un objeto JSON con la forma `{ "meals": [ ... ] }`.
+- Cada receta incluye `idMeal`, `strMeal`, `strCategory`, `strMealThumb`, etc.
+
+**Ejemplo simplificado de la respuesta:**
+
+```json
+{
+  "meals": [
+    {
+      "idMeal": "53322",
+      "strMeal": "Flan",
+      "strCategory": "Dessert",
+      "strMealThumb": "https://www.themealdb.com/images/media/meals/...jpg"
+    }
+  ]
+}
+```
+
+**Qué hace el código (`src/App.jsx`):**
+
+1. Define la constante `API_URL` con la URL anterior.
+2. Dentro de `useEffect`, hace `fetch(API_URL)`, valida `res.ok` y convierte la respuesta con `res.json()`.
+3. Muestra la respuesta completa en la consola del navegador con `console.log(...)` (F12 → pestaña *Console*).
+4. Adapta cada receta al formato que espera `<RecipeCard />` y la guarda con `setRecipes(...)`.
+5. Renderiza la lista con `.map()`.
+
+**Estados manejados:**
+
+| Estado | Variable | Qué se muestra |
+| ------ | -------- | -------------- |
+| Cargando | `loading` | Spinner y mensaje "Cargando recetas..." |
+| Error | `error` | Mensaje de error y botón **Reintentar** |
+| Sin resultados | `recipes.length === 0` | Mensaje "No se encontraron recetas" |
+| Éxito | `recipes` | Grilla de tarjetas con los datos de la API |
 
 ## 💻 Instrucciones de instalación y ejecución
 
@@ -76,15 +125,4 @@ Para correr este proyecto en tu entorno local, asegúrate de tener Node.js y `pn
 4. **Ver la aplicación:**
    Abre tu navegador e ingresa a `http://localhost:5173`.
 
----
-
-## 🌐 Consumo de API (Práctica de la Semana U3-1)
-
-En esta entrega se integró el consumo de datos reales de forma asíncrona en React utilizando `fetch`, `useEffect` y `useState`, incluyendo el manejo visual de estados de carga (`loading`) y error (`error`).
-
-* **API Pública elegida:** [TheMealDB](https://www.themealdb.com/)
-* **Documentación oficial:** `https://www.themealdb.com/api.php`
-* **Endpoint utilizado (GET):** `https://www.themealdb.com/api/json/v1/1/search.php?s=a`
-* **Archivo de implementación:** `src/App.jsx`
-
-*Nota: Este proyecto está en fase de desarrollo frontend puro. La conexión con la API REST y la base de datos se implementará en fases posteriores.*
+*Nota: En esta fase el frontend ya consume datos reales de TheMealDB mediante `fetch`. La integración con un backend/base de datos propia y el resto de funcionalidades se implementarán en fases posteriores.*

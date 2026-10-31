@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import RecipeCard from './RecipeCard';
 import Tarjeta from './Tarjeta';
 import './App.css';
 
-// Endpoint público de TheMealDB (Punto 1 de la práctica)
-const API_URL = 'https://www.themealdb.com/api/json/v1/1/search.php?s=a';
+// Paso 1 y 2: API pública del proyecto (TheMealDB, del dominio de recetas).
+// El endpoint "search.php" devuelve un JSON con la lista de comidas.
+const API_URL = 'https://www.themealdb.com/api/json/v1/1/search.php?s=';
 
+// Ejemplo de lista simple para el componente Tarjeta (props: titulo, descripcion)
 const destacados = [
   { id: 1, titulo: 'Spaghetti Carbonara', descripcion: 'Pasta italiana con huevo, queso y panceta.' },
   { id: 2, titulo: 'Tacos al Pastor', descripcion: 'Tortilla de maíz con cerdo adobado y piña.' },
@@ -13,68 +15,78 @@ const destacados = [
 ];
 
 function App() {
-  // Estados para consumir la API (Puntos 3 y 4)
-  const [recipes, setRecipes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Estado para el contador global de favoritos
+  // Paso 3: Estado para el contador global de favoritos[cite: 2, 3]
   const [favCount, setFavCount] = useState(0);
 
-  // Estado para el formulario controlado
+  // Paso 3: Estado para el formulario controlado[cite: 2, 3]
   const [formData, setFormData] = useState({ name: '', category: '', desc: '' });
   const [formMessage, setFormMessage] = useState({ text: '', type: '' });
 
-  // Función para obtener los datos de la API
-  const fetchRecipes = async (simulateError = false) => {
-    try {
+  // Paso 3: Estados para el consumo de datos (useState + useEffect)
+  const [recipes, setRecipes] = useState([]);   // Recetas que llegan de la API
+  const [loading, setLoading] = useState(true); // true mientras se espera la respuesta
+  const [error, setError] = useState(null);     // Mensaje si la petición falla
+  const [reloadKey, setReloadKey] = useState(0); // Cambiarlo vuelve a ejecutar el useEffect
+
+  // Paso 2 y 3: GET a la API dentro de useEffect
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchRecipes() {
       setLoading(true);
       setError(null);
 
-      // Pausa de 2 segundos para que se aprecie el estado de carga (loading) en pantalla
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        // Paso 2: petición GET a la API pública
+        const res = await fetch(API_URL, { signal: controller.signal });
 
-      // Si simulateError es true, usamos una URL rota para demostrar el Punto 4 (estado de error)
-      const urlToFetch = simulateError 
-        ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error' 
-        : API_URL;
+        if (!res.ok) {
+          throw new Error(`Error HTTP ${res.status}`);
+        }
 
-      const res = await fetch(urlToFetch);
-      if (!res.ok) {
-        throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
+        // Paso 2: convertir la respuesta a JSON y mostrarla en la consola
+        const data = await res.json();
+        console.log('📦 Datos recibidos de TheMealDB:', data);
+
+        // La API devuelve { meals: [...] } (o meals: null si no hay resultados)
+        const meals = data.meals ?? [];
+
+        // Adaptamos la forma de la API a la que espera <RecipeCard />
+        const mappedRecipes = meals.slice(0, 12).map((meal) => ({
+          id: meal.idMeal,
+          title: meal.strMeal,
+          category: meal.strCategory ?? 'Sin categoría',
+          image: meal.strMealThumb,
+          link: `https://www.themealdb.com/meal/${meal.idMeal}`,
+        }));
+
+        // Paso 3: guardamos los datos en el estado para renderizarlos
+        setRecipes(mappedRecipes);
+      } catch (err) {
+        // Si el componente se desmonta, fetch lanza AbortError: lo ignoramos
+        if (err.name !== 'AbortError') {
+          console.error('❌ Error al consumir la API:', err);
+          setError('No se pudieron cargar las recetas. Revisa tu conexión e inténtalo de nuevo.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
-
-      const data = await res.json();
-
-      // Punto 2: Mostrar los datos en la consola
-      console.log('Datos crudos de TheMealDB (res.json()):', data);
-
-      const formattedRecipes = (data.meals || []).map((meal) => ({
-        id: meal.idMeal,
-        title: meal.strMeal,
-        category: meal.strCategory,
-        image: meal.strMealThumb,
-        link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
-      }));
-
-      setRecipes(formattedRecipes);
-    } catch (err) {
-      console.error('Error capturado:', err);
-      setError('Error al cargar las recetas desde TheMealDB. Verifica tu conexión o la URL de la API.');
-    } finally {
-      setLoading(false);
     }
-  };
 
-  // Punto 3: Se ejecuta automáticamente al cargar la página
-  useEffect(() => {
-    fetchRecipes(false);
-  }, []);
+    fetchRecipes();
 
+    // Limpieza: cancela la petición si el componente se desmonta
+    return () => controller.abort();
+  }, [reloadKey]);
+
+  // Función para actualizar el contador desde las tarjetas
   const handleToggleFavorite = (change) => {
     setFavCount((prevCount) => prevCount + change);
   };
 
+  // Manejador genérico para los inputs del formulario
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -82,6 +94,7 @@ function App() {
     });
   };
 
+  // Paso 4: Evento de envío del formulario (Validación de app.js migrada)[cite: 2, 3]
   const handleSubmit = (e) => {
     e.preventDefault();
     const { name, category, desc } = formData;
@@ -92,7 +105,7 @@ function App() {
     }
 
     setFormMessage({ text: `✅ ¡Gracias! La receta "${name.trim()}" ha sido enviada correctamente.`, type: 'exito' });
-    setFormData({ name: '', category: '', desc: '' });
+    setFormData({ name: '', category: '', desc: '' }); // Limpia el formulario
   };
 
   return (
@@ -106,6 +119,7 @@ function App() {
             <li><a href="#inicio">Inicio</a></li>
             <li><a href="#recetas">Recetas</a></li>
             <li><a href="#sugerir">Sugerir</a></li>
+            {/* Se renderiza dinámicamente el estado del contador */}
             <li className="fav-counter-container">❤️ Favoritos: <span>{favCount}</span></li>
           </ul>
         </nav>
@@ -126,47 +140,55 @@ function App() {
         <section id="recetas" className="recipes-section">
           <h2>Recetas Destacadas</h2>
 
-          {/* Botones de control para probar Carga y Error en vivo */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '24px' }}>
-            <button type="button" className="btn" onClick={() => fetchRecipes(false)}>
-              🔄 Recargar API (Ver Carga)
-            </button>
-            <button type="button" className="btn" onClick={() => fetchRecipes(true)}>
-              ⚠️ Simular Falla (Ver Error)
-            </button>
-          </div>
-
-          {/* Punto 4: Estado de CARGA visible */}
+          {/* Paso 4: Estado de carga */}
           {loading && (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Cargando recetas desde TheMealDB...</p>
+            <div className="status-message" role="status">
+              <span className="spinner" aria-hidden="true"></span>
+              Cargando recetas desde TheMealDB...
             </div>
           )}
 
-          {/* Punto 4: Estado de ERROR visible */}
+          {/* Paso 4: Estado de error (con opción de reintentar) */}
           {!loading && error && (
-            <div className="form-message error" style={{ maxWidth: '480px', margin: '20px auto' }}>
-              <p>❌ {error}</p>
+            <div className="status-message error" role="alert">
+              <p>⚠️ {error}</p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setReloadKey((prev) => prev + 1)}
+              >
+                Reintentar
+              </button>
             </div>
           )}
 
-          {/* Punto 3: Renderizar la lista cuando terminó de cargar sin errores */}
-          {!loading && !error && (
-            <div className="recipes-grid">
-              {recipes.map((recipe) => (
-                <RecipeCard 
-                  key={recipe.id} 
-                  recipe={recipe} 
-                  onToggleFavorite={handleToggleFavorite} 
-                />
-              ))}
-            </div>
+          {/* Estado vacío: la petición funcionó pero no hay datos */}
+          {!loading && !error && recipes.length === 0 && (
+            <p className="status-message">No se encontraron recetas para mostrar.</p>
+          )}
+
+          {/* Paso 3: Renderiza la lista iterando el estado con map() */}
+          {!loading && !error && recipes.length > 0 && (
+            <>
+              <p className="recipes-count">
+                Mostrando {recipes.length} recetas obtenidas de la API.
+              </p>
+              <div className="recipes-grid">
+                {recipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </section>
 
         <section id="sugerir" className="form-section">
           <h2>Sugerir una nueva receta</h2>
+          {/* Formulario controlado */}
           <form id="recipe-form" noValidate onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="name">Nombre del platillo:</label>
@@ -183,6 +205,7 @@ function App() {
               <textarea id="desc" name="desc" rows="3" value={formData.desc} onChange={handleInputChange} placeholder="Ej: Harina, tomate, queso..."></textarea>
             </div>
 
+            {/* Mensaje dinámico del formulario */}
             {formMessage.text && (
               <p className={`form-message ${formMessage.type}`} style={{ display: 'block' }}>
                 {formMessage.text}
