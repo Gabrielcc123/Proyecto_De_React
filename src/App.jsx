@@ -25,51 +25,77 @@ function App() {
   const [formData, setFormData] = useState({ name: '', category: '', desc: '' });
   const [formMessage, setFormMessage] = useState({ text: '', type: '' });
 
-  // Función para obtener los datos de la API
-  const fetchRecipes = async (simulateError = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Hace el GET y devuelve la lista normalizada, sin tocar el estado.
+  // Así el useEffect solo actualiza el estado dentro de callbacks asíncronos.
+  const getRecipes = async (simulateError = false) => {
+    // Si simulateError es true, usamos una URL rota para demostrar el estado de error.
+    const urlToFetch = simulateError
+      ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error'
+      : API_URL;
 
-      // Pausa de 2 segundos para que se aprecie el estado de carga (loading) en pantalla
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Si simulateError es true, usamos una URL rota para demostrar el Punto 4 (estado de error)
-      const urlToFetch = simulateError 
-        ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error' 
-        : API_URL;
-
-      const res = await fetch(urlToFetch);
-      if (!res.ok) {
-        throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
-      }
-
-      const data = await res.json();
-
-      // Punto 2: Mostrar los datos en la consola
-      console.log('Datos crudos de TheMealDB (res.json()):', data);
-
-      const formattedRecipes = (data.meals || []).map((meal) => ({
-        id: meal.idMeal,
-        title: meal.strMeal,
-        category: meal.strCategory,
-        image: meal.strMealThumb,
-        link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
-      }));
-
-      setRecipes(formattedRecipes);
-    } catch (err) {
-      console.error('Error capturado:', err);
-      setError('Error al cargar las recetas desde TheMealDB. Verifica tu conexión o la URL de la API.');
-    } finally {
-      setLoading(false);
+    const res = await fetch(urlToFetch);
+    if (!res.ok) {
+      throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
     }
+
+    const data = await res.json();
+
+    // Punto 2 de U3-1: mostrar los datos crudos en la consola.
+    console.log('Datos crudos de TheMealDB (res.json()):', data);
+
+    // Normalizamos la respuesta para que la lista sea más fácil de renderizar.
+    return (data.meals || []).map((meal) => ({
+      id: meal.idMeal,
+      title: meal.strMeal,
+      category: meal.strCategory,
+      image: meal.strMealThumb,
+      link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
+    }));
   };
 
-  // Punto 3: Se ejecuta automáticamente al cargar la página
+  // Punto 1 de U3-2: fetch dentro de useEffect, una sola vez al montar el componente.
   useEffect(() => {
-    fetchRecipes(false);
+    let cancelled = false;
+
+    getRecipes()
+      .then((formattedRecipes) => {
+        if (cancelled) return;
+        setRecipes(formattedRecipes);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Error capturado:', err);
+        setRecipes([]);
+        setError('No pudimos cargar las recetas. Revisa tu conexión a internet e inténtalo de nuevo.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    // Evita actualizar el estado si el componente se desmonta antes de terminar.
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // Reintenta la carga mostrando de nuevo el estado "Cargando...".
+  const handleRetry = (simulateError = false) => {
+    setLoading(true);
+    setError(null);
+
+    getRecipes(simulateError)
+      .then((formattedRecipes) => {
+        setRecipes(formattedRecipes);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error('Error capturado:', err);
+        setRecipes([]);
+        setError('No pudimos cargar las recetas. Revisa tu conexión a internet e inténtalo de nuevo.');
+      })
+      .finally(() => setLoading(false));
+  };
 
   const handleToggleFavorite = (change) => {
     setFavCount((prevCount) => prevCount + change);
@@ -124,44 +150,61 @@ function App() {
         </section>
 
         <section id="recetas" className="recipes-section">
-          <h2>Recetas Destacadas</h2>
+          <h2>Recetas desde TheMealDB</h2>
 
           {/* Botones de control para probar Carga y Error en vivo */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '24px' }}>
-            <button type="button" className="btn" onClick={() => fetchRecipes(false)}>
-              🔄 Recargar API (Ver Carga)
+          <div className="api-controls">
+            <button type="button" className="btn" onClick={() => handleRetry(false)}>
+              🔄 Recargar API
             </button>
-            <button type="button" className="btn" onClick={() => fetchRecipes(true)}>
-              ⚠️ Simular Falla (Ver Error)
+            <button type="button" className="btn" onClick={() => handleRetry(true)}>
+              ⚠️ Simular Falla
             </button>
           </div>
 
-          {/* Punto 4: Estado de CARGA visible */}
+          {/* Punto 2 de U3-2: estado de CARGA visible */}
           {loading && (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Cargando recetas desde TheMealDB...</p>
+            <div className="loading-container" role="status" aria-live="polite">
+              <div className="spinner" aria-hidden="true"></div>
+              <p>Cargando...</p>
+              <span className="loading-detail">Consultando las recetas de TheMealDB</span>
             </div>
           )}
 
-          {/* Punto 4: Estado de ERROR visible */}
+          {/* Punto 2 de U3-2: estado de ERROR con mensaje amigable y opción de reintentar */}
           {!loading && error && (
-            <div className="form-message error" style={{ maxWidth: '480px', margin: '20px auto' }}>
-              <p>❌ {error}</p>
+            <div className="error-container" role="alert">
+              <p className="error-title">😕 Ups, algo salió mal</p>
+              <p>{error}</p>
+              <button type="button" className="btn" onClick={() => handleRetry(false)}>
+                Reintentar
+              </button>
             </div>
           )}
 
-          {/* Punto 3: Renderizar la lista cuando terminó de cargar sin errores */}
-          {!loading && !error && (
-            <div className="recipes-grid">
-              {recipes.map((recipe) => (
-                <RecipeCard 
-                  key={recipe.id} 
-                  recipe={recipe} 
-                  onToggleFavorite={handleToggleFavorite} 
-                />
-              ))}
+          {/* Punto 3 de U3-2: lista renderizada con .map() y key única (id) */}
+          {!loading && !error && recipes.length === 0 && (
+            <div className="empty-container" role="status">
+              <p>No encontramos recetas para mostrar.</p>
+              <button type="button" className="btn" onClick={() => handleRetry(false)}>
+                Volver a intentar
+              </button>
             </div>
+          )}
+
+          {!loading && !error && recipes.length > 0 && (
+            <>
+              <p className="results-count">Mostrando {recipes.length} recetas</p>
+              <div className="recipes-grid">
+                {recipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </section>
 
