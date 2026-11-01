@@ -25,76 +25,60 @@ function App() {
   const [formData, setFormData] = useState({ name: '', category: '', desc: '' });
   const [formMessage, setFormMessage] = useState({ text: '', type: '' });
 
-  // Hace el GET y devuelve la lista normalizada, sin tocar el estado.
-  // Así el useEffect solo actualiza el estado dentro de callbacks asíncronos.
-  const getRecipes = async (simulateError = false) => {
-    // Si simulateError es true, usamos una URL rota para demostrar el estado de error.
-    const urlToFetch = simulateError
-      ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error'
-      : API_URL;
+  // Punto 1 de U3-2: petición GET con fetch dentro de una función asíncrona.
+  // Punto 2 de U3-2: los tres estados se actualizan en try / catch / finally.
+  const fetchRecipes = async (simulateError = false) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const res = await fetch(urlToFetch);
-    if (!res.ok) {
-      throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
+      // Si simulateError es true, usamos una URL rota para demostrar el estado de error.
+      const urlToFetch = simulateError
+        ? 'https://www.themealdb.com/api/json/v1/1/url-invalida-error'
+        : API_URL;
+
+      const res = await fetch(urlToFetch);
+      if (!res.ok) {
+        throw new Error(`No se pudo conectar con el servidor (Código HTTP: ${res.status})`);
+      }
+
+      const data = await res.json();
+
+      // Punto 2 de U3-1: mostrar los datos crudos en la consola.
+      console.log('Datos crudos de TheMealDB (res.json()):', data);
+
+      // Normalizamos la respuesta para que la lista sea más fácil de renderizar.
+      const formattedRecipes = (data.meals || []).map((meal) => ({
+        id: meal.idMeal,
+        title: meal.strMeal,
+        category: meal.strCategory,
+        image: meal.strMealThumb,
+        link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
+      }));
+
+      setRecipes(formattedRecipes);
+      setError(null);
+    } catch (err) {
+      console.error('Error capturado:', err);
+      setRecipes([]);
+      setError('No pudimos cargar las recetas. Revisa tu conexión a internet e inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
     }
-
-    const data = await res.json();
-
-    // Punto 2 de U3-1: mostrar los datos crudos en la consola.
-    console.log('Datos crudos de TheMealDB (res.json()):', data);
-
-    // Normalizamos la respuesta para que la lista sea más fácil de renderizar.
-    return (data.meals || []).map((meal) => ({
-      id: meal.idMeal,
-      title: meal.strMeal,
-      category: meal.strCategory,
-      image: meal.strMealThumb,
-      link: meal.strSource || `https://www.themealdb.com/meal/${meal.idMeal}`
-    }));
   };
 
-  // Punto 1 de U3-2: fetch dentro de useEffect, una sola vez al montar el componente.
+  // Punto 1 de U3-2: se ejecuta una sola vez al montar el componente.
   useEffect(() => {
-    let cancelled = false;
-
-    getRecipes()
-      .then((formattedRecipes) => {
-        if (cancelled) return;
-        setRecipes(formattedRecipes);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('Error capturado:', err);
-        setRecipes([]);
-        setError('No pudimos cargar las recetas. Revisa tu conexión a internet e inténtalo de nuevo.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    // Evita actualizar el estado si el componente se desmonta antes de terminar.
-    return () => {
-      cancelled = true;
-    };
+    // La IIFE asíncrona permite esperar la petición sin actualizar el estado
+    // de forma síncrona durante el montaje.
+    (async () => {
+      await fetchRecipes(false);
+    })();
   }, []);
 
   // Reintenta la carga mostrando de nuevo el estado "Cargando...".
   const handleRetry = (simulateError = false) => {
-    setLoading(true);
-    setError(null);
-
-    getRecipes(simulateError)
-      .then((formattedRecipes) => {
-        setRecipes(formattedRecipes);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error('Error capturado:', err);
-        setRecipes([]);
-        setError('No pudimos cargar las recetas. Revisa tu conexión a internet e inténtalo de nuevo.');
-      })
-      .finally(() => setLoading(false));
+    fetchRecipes(simulateError);
   };
 
   const handleToggleFavorite = (change) => {
