@@ -120,7 +120,7 @@ En esta entrega el GET de la semana pasada se convirtió en una lista visible de
 
 *Nota: El proyecto consume la API pública directamente desde el frontend. La integración con una API REST propia y una base de datos se implementará en fases posteriores.*
 
-## 🧠 Gestión de Estado Compartido (Práctica de la Semana)
+## 🧠 Gestión de Estado Compartido (Practica U3-3 )
 
 El estado de favoritos dejó de vivir repartido entre `App` y cada tarjeta. Ahora hay una sola fuente, y quien lo necesita lo lee en el componente donde se usa.
 
