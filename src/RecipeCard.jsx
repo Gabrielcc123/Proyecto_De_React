@@ -1,16 +1,8 @@
-import { useState } from 'react';
+import { useFavorites } from './context/FavoritesContext.jsx';
 
-export default function RecipeCard({ recipe, onToggleFavorite }) {
-  // Paso 3: Agrega estado local para saber si esta tarjeta es favorita
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  // Paso 4: Conecta eventos para el botón
-  const handleFavClick = () => {
-    const newState = !isFavorite;
-    setIsFavorite(newState);
-    // Replicamos la lógica de app.js: sumamos 1 si es favorito, restamos 1 si no[cite: 3]
-    onToggleFavorite(newState ? 1 : -1); 
-  };
+export default function RecipeCard({ recipe }) {
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const active = isFavorite(recipe.id);
 
   return (
     <article className="recipe-card">
@@ -20,16 +12,16 @@ export default function RecipeCard({ recipe, onToggleFavorite }) {
         <p>Categoría: {recipe.category}</p>
         <div className="card-actions">
           <a href={recipe.link} target="_blank" rel="noreferrer" className="btn">Ver Receta</a>
-          <button 
-            className={`btn-fav ${isFavorite ? 'activo' : ''}`} 
+          <button
+            className={`btn-fav ${active ? 'activo' : ''}`}
             type="button"
-            onClick={handleFavClick}
+            onClick={() => toggleFavorite(recipe)}
             style={{
-              backgroundColor: isFavorite ? '#e74c3c' : '#ecf0f1',
-              color: isFavorite ? '#fff' : '#333'
+              backgroundColor: active ? '#e74c3c' : '#ecf0f1',
+              color: active ? '#fff' : '#333'
             }}
           >
-            {isFavorite ? '❤️ Guardado' : '🤍 Me gusta'}
+            {active ? '❤️ Guardado' : '🤍 Me gusta'}
           </button>
         </div>
       </div>

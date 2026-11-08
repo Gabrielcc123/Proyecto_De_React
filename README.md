@@ -32,7 +32,9 @@ Esta es la estructura de archivos actual del proyecto, generada con Vite:
 │   │   ├── hero.png
 │   │   ├── react.svg
 │   │   └── vite.svg
-│   ├── Header.jsx           # Componente de cabecera
+│   ├── context/
+│   │   └── FavoritesContext.jsx  # Estado compartido de favoritos (Context API)
+│   ├── Header.jsx           # Cabecera. Lee favCount con useFavorites, sin props
 │   ├── index.css            # Estilos globales
 │   ├── main.jsx             # Punto de anclaje de React al DOM
 │   ├── RecipeCard.jsx       # Tarjeta de receta traída desde la API
@@ -70,8 +72,8 @@ Para correr este proyecto en tu entorno local, asegúrate de tener Node.js y `pn
 1. **Clonar el repositorio** (o descargar los archivos):
 
    ```bash
-   git clone <url-del-repositorio>
-   cd sabordb-react
+   git clone https://github.com/Gabrielcc123/Proyecto_De_React
+   cd royecto_De_React
    ```
 
 2. **Instalar las dependencias:**
@@ -117,3 +119,17 @@ En esta entrega el GET de la semana pasada se convirtió en una lista visible de
 * **Botones de prueba:** **Recargar API** (muestra el estado de carga) y **Simular Falla** (muestra el estado de error).
 
 *Nota: El proyecto consume la API pública directamente desde el frontend. La integración con una API REST propia y una base de datos se implementará en fases posteriores.*
+
+## 🧠 Gestión de Estado Compartido (Práctica de la Semana)
+
+El estado de favoritos dejó de vivir repartido entre `App` y cada tarjeta. Ahora hay una sola fuente, y quien lo necesita lo lee en el componente donde se usa.
+
+1. **Estado compartido identificado.** `favorites` y `favCount` los necesitan al mismo tiempo `Header` (el contador del menú) y `RecipeCard` (el botón de cada receta). Ese dato no pertenece a una sola tarjeta.
+
+2. **Gestión con Context API.** `src/context/FavoritesContext.jsx` crea `FavoritesContext`, guarda el arreglo `favorites` y lo expone con el custom hook `useFavorites()`. El arreglo arranca desde `localStorage` (`sabordb_favorites`) y un `useEffect` lo vuelve a guardar en cada cambio. El Provider publica `{ favorites, favCount, toggleFavorite, isFavorite }`.
+
+3. **Eliminación del prop drilling.** Se eliminaron `onToggleFavorite` y `favCount` de `App.jsx`. `Header` no recibe props: llama `useFavorites()` y muestra el contador. `RecipeCard` solo recibe `{ recipe }` y llama `toggleFavorite(recipe)` e `isFavorite(recipe.id)` dentro del propio componente.
+
+4. **Sincronización en tiempo real en toda la interfaz.** Marcar o quitar una receta actualiza en el mismo render el corazón de la tarjeta, el contador del header y la sección "Mis Favoritos Guardados". Como el estado vive en el Provider y no en la tarjeta, recargar la petición a TheMealDB no borra los corazones: al volver la lista, `isFavorite` sigue leyendo el mismo arreglo.
+
+5. **Por qué Context API y no Redux Toolkit.** El estado compartido es uno solo y acotado a favoritos. Context API es nativo de React, así que no hace falta agregar `@reduxjs/toolkit` ni `react-redux` a `pnpm`. Redux Toolkit conviene cuando hay mucho estado global, middleware o flujos difíciles de seguir. Acá sumaría dependencia y ceremonia para un arreglo y dos funciones.

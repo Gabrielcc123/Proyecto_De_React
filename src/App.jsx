@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import RecipeCard from './RecipeCard';
 import Tarjeta from './Tarjeta';
+import Header from './Header';
+import { useFavorites } from './context/FavoritesContext.jsx';
 import './App.css';
 
 // Endpoint público de TheMealDB (Punto 1 de la práctica)
@@ -18,8 +20,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estado para el contador global de favoritos
-  const [favCount, setFavCount] = useState(0);
+  const { favorites } = useFavorites();
 
   // Estado para el formulario controlado
   const [formData, setFormData] = useState({ name: '', category: '', desc: '' });
@@ -81,10 +82,6 @@ function App() {
     fetchRecipes(simulateError);
   };
 
-  const handleToggleFavorite = (change) => {
-    setFavCount((prevCount) => prevCount + change);
-  };
-
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -107,19 +104,7 @@ function App() {
 
   return (
     <>
-      <header className="header">
-        <div className="logo">
-          <h1>🍳 SaborDB</h1>
-        </div>
-        <nav className="nav">
-          <ul>
-            <li><a href="#inicio">Inicio</a></li>
-            <li><a href="#recetas">Recetas</a></li>
-            <li><a href="#sugerir">Sugerir</a></li>
-            <li className="fav-counter-container">❤️ Favoritos: <span>{favCount}</span></li>
-          </ul>
-        </nav>
-      </header>
+      <Header />
 
       <main className="main-content">
         <section id="inicio" className="hero-section">
@@ -135,6 +120,17 @@ function App() {
 
         <section id="recetas" className="recipes-section">
           <h2>Recetas desde TheMealDB</h2>
+
+          {favorites.length > 0 && (
+            <section className="saved-favorites" aria-labelledby="saved-favorites-title">
+              <h3 id="saved-favorites-title">Mis Favoritos Guardados</h3>
+              <ul className="saved-favorites-list">
+                {favorites.map((item) => (
+                  <li key={item.id}>{item.title}</li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* Botones de control para probar Carga y Error en vivo */}
           <div className="api-controls">
@@ -181,11 +177,7 @@ function App() {
               <p className="results-count">Mostrando {recipes.length} recetas</p>
               <div className="recipes-grid">
                 {recipes.map((recipe) => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
+                  <RecipeCard key={recipe.id} recipe={recipe} />
                 ))}
               </div>
             </>

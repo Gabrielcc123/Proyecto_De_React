@@ -416,3 +416,36 @@
   font-size: 14px;
   color: var(--text);
 }
+
+.saved-favorites {
+  margin: 0 auto 24px;
+  max-width: 720px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--code-bg);
+  text-align: left;
+}
+
+.saved-favorites h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.saved-favorites-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saved-favorites-list li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-size: 14px;
+}
