@@ -7,9 +7,9 @@ Aplicación Web de Página Única (SPA) construida con React. Este proyecto sirv
 | Campo | Valor | 
 | ----- | ----- | 
 | Proyecto | Recetario de Cocina (SaborDB - React) | 
-| Fase actual | Fase 1: Componentes estáticos y Estado local | 
+| Fase actual | Fase 2: Consumo de datos y lista en pantalla | 
 | Tecnologías | React, JSX, Vite, pnpm | 
-| Conceptos clave | Componentes funcionales, `props`, `useState` | 
+| Conceptos clave | Componentes funcionales, `props`, `useState`, `useEffect`, `fetch`, renderizado de listas | 
 
 ## 📁 Estructura inicial del proyecto
 
@@ -34,7 +34,9 @@ Esta es la estructura de archivos actual del proyecto, generada con Vite:
 │   │   └── vite.svg
 │   ├── Header.jsx           # Componente de cabecera
 │   ├── index.css            # Estilos globales
-│   └── main.jsx             # Punto de anclaje de React al DOM
+│   ├── main.jsx             # Punto de anclaje de React al DOM
+│   ├── RecipeCard.jsx       # Tarjeta de receta traída desde la API
+│   └── Tarjeta.jsx          # Tarjeta simple para recetas destacadas
 └── vite.config.js           # Configuración del empaquetador Vite
 ```
 
@@ -48,7 +50,18 @@ En esta iteración del proyecto, estamos aislando la interfaz de usuario para en
 
 3. **Manejo del Estado (`useState`):** Implementación de interactividad en cada tarjeta para marcar las recetas como "Favoritas" (Me gusta / No me gusta) de forma independiente.
 
-4. **Renderizado de Listas:** Uso del método `.map()` de JavaScript para iterar sobre un arreglo de datos estáticos y generar elementos dinámicamente.
+4. **Renderizado de Listas:** Uso del método `.map()` de JavaScript para iterar sobre un arreglo de datos y generar elementos dinámicamente.
+
+5. **Consumo de datos (`fetch` + `useEffect`):** Petición GET a una API pública al montar el componente, con estados de carga y error.
+
+6. **Lista en pantalla:** Renderizado de la respuesta de la API con `.map()` y una `key` única por elemento (`idMeal`).
+
+## 📚 Avance de las prácticas
+
+| Práctica | Tema | Estado |
+| -------- | ---- | ------ |
+| U3-1 | Primer paso del consumo de datos (GET + `res.json()` en consola) | ✅ Completada |
+| U3-2 | Convertir el GET en una lista real en pantalla | ✅ Completada |
 
 ## 💻 Instrucciones de instalación y ejecución
 
@@ -87,4 +100,20 @@ En esta entrega se integró el consumo de datos reales de forma asíncrona en Re
 * **Endpoint utilizado (GET):** `https://www.themealdb.com/api/json/v1/1/search.php?s=a`
 * **Archivo de implementación:** `src/App.jsx`
 
-*Nota: Este proyecto está en fase de desarrollo frontend puro. La conexión con la API REST y la base de datos se implementará en fases posteriores.*
+## 🖥️ Lista en pantalla (Práctica de la Semana U3-2)
+
+En esta entrega el GET de la semana pasada se convirtió en una lista visible dentro de la aplicación:
+
+1. Los datos se cargan con `fetch` dentro de un `useEffect` que se ejecuta una sola vez al montar `App`.
+2. Se manejan los tres estados de la práctica:
+   * **Datos:** `recipes` guarda la lista normalizada de recetas.
+   * **Cargando:** `loading` muestra el spinner y el texto `Cargando...`.
+   * **Error:** `error` muestra un mensaje amigable con un botón para **Reintentar**.
+3. La lista se renderiza con `.map()` y cada tarjeta usa `meal.idMeal` como `key` única.
+4. La pantalla incluye un estado vacío por si la API no devuelve recetas.
+5. El avance quedó versionado en GitHub y documentado en este README.
+
+* **Componente de la tarjeta:** `src/RecipeCard.jsx`
+* **Botones de prueba:** **Recargar API** (muestra el estado de carga) y **Simular Falla** (muestra el estado de error).
+
+*Nota: El proyecto consume la API pública directamente desde el frontend. La integración con una API REST propia y una base de datos se implementará en fases posteriores.*
